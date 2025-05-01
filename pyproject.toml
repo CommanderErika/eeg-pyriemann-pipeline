@@ -1,0 +1,18 @@
+[project]
+name = "moabb-study"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "cookiecutter-data-science>=2.2.0",
+    "moabb>=1.2.0",
+    "numpy>=1.26.4",
+    "pip>=25.1",
+    "pyriemann>=0.7",
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=6.29.5",
+]
