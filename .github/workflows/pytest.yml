@@ -1,9 +1,11 @@
 name: Pytest CI with UV
-on: [push, pull_request]  # Triggers on push/PR to any branch
-
+on:
+  push:
+    branches: [ "main", "develop" ]
 jobs:
   test:
     runs-on: ubuntu-latest
+    # if: github.ref == 'refs/heads/develop'
     steps:
       - uses: actions/checkout@v4
 
@@ -12,7 +14,7 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Install UV (Ultra-Violet)
+      - name: Install UV
         run: |
           curl -LsSf https://astral.sh/uv/install.sh | sh
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH  # Add UV to PATH
