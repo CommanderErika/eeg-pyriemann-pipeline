@@ -1,4 +1,7 @@
 .venv
-./data/
-__pycache__/
+.5524
+.pytest_cache
+/data/
+/src/__pycache__/
+/tests/__pycache__/
 cle
