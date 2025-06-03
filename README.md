@@ -1,6 +1,6 @@
 # <center> **EEG Classification Pipeline with MOABB and PyRiemann**
 
-A pipeline for motor imagery EEG classification using Riemannian geometry.
+A pipeline for EEG classification using Riemannian geometry.
 
 ## 1. Installing
 
