@@ -49,14 +49,13 @@ This project uses uv for fast and reproducible dependency management.
 
 Prerequisites
 * Python 3.10+
-* C/C++ Compiler (for RiemannDSP compilation) (Optional)
 
 
 ### 3.1. Setup
 
 ```
-git clone https://github.com/your-username/riemannian-bci-benchmark.git
-cd riemannian-bci-benchmark
+git clone https://github.com/CommanderErika/eeg-pyriemann-pipeline.git
+cd eeg-pyriemann-pipeline
 ```
 
 ### 3.2. Install Depedencies
