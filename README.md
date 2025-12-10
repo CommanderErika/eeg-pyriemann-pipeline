@@ -20,36 +20,36 @@ The framework features an automated "Research Engine" that orchestrates **Hyperp
 
 ```mermaid
 graph LR
-    %% Estilos
-    classDef storage fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
-    classDef config fill:#fff3e0,stroke:#e65100,stroke-width:2px,stroke-dasharray: 5 5;
-    classDef container fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
-    classDef process fill:#ffffff,stroke:#333,stroke-width:1px;
+    %% Styles
+    classDef storage fill:#ffffff;
+    classDef config fill:#ffffff;
+    classDef container fill:#ffffff;
+    classDef process fill:#ffffff;
 
-    %% 1. Entrada
+    %% 1. Input
     Input[("📁 Input<br/>Tangent Space HDF5")]:::storage
 
-    %% 2. Otimização (Externo)
-    Optuna{{"⚡ Optuna<br/>(Sugere Hiperparâmetros)"}}:::config
+    %% 2. Optimization (External)
+    Optuna{{"⚡ Optuna<br/>(Suggests Hyperparameters)"}}:::config
 
-    %% 3. O Grande Bloco de Validação
+    %% 3. Validation Block
     subgraph CV ["🔄 Cross-Validation (LOSO)"]
         direction LR
         
-        RPA["📐 Alinhamento Geométrico<br/>(Procrustes / PA)"]:::process
-        Train["🧠 Treinamento do Modelo<br/>(SVM / LDA / Ridge)"]:::process
+        PA["📐 Geometric Alignment<br/>(Procrustes / PA)"]:::process
+        Train["🧠 Model Training<br/>(SVM / LDA / Logistic Regression)"]:::process
         
-        %% Conexão interna
-        RPA --> Train
+        %% Internal Connection
+        PA --> Train
     end
 
-    %% 4. Saída
-    Output[("📊 MLflow<br/>(Tracking de Métricas)")]:::storage
+    %% 4. Output
+    Output[("📊 MLflow<br/>(Metric Tracking)")]:::storage
 
-    %% Conexões Principais
+    %% Main Connections
     Input --> CV
-    Optuna -.-> |"Configura"| CV
-    CV --> |"Média F1-Score"| Output
+    Optuna -.-> |"Configures"| CV
+    CV --> |"Mean & Std Dev Scores"| Output
 ```
 
 ## 2. Project Structure
