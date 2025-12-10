@@ -20,63 +20,36 @@ The framework features an automated "Research Engine" that orchestrates **Hyperp
 
 ```mermaid
 graph LR
-    %% Estilos (Cores Profissionais)
+    %% Estilos
     classDef storage fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
-    classDef logic fill:#fff3e0,stroke:#e65100,stroke-width:2px,stroke-dasharray: 5 5;
-    classDef process fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
-    classDef math fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px;
+    classDef config fill:#fff3e0,stroke:#e65100,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef container fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
+    classDef process fill:#ffffff,stroke:#333,stroke-width:1px;
 
-    %% --- Entrada ---
-    HDF5[("Arquivo HDF5<br/>Tangent Space")]:::storage
-    
-    %% --- Loop LOSO ---
-    subgraph LOSO_LOOP ["Validação Cruzada: Leave-One-Subject-Out (LOSO)"]
-        direction TB
-        Iterator{{Iterar Sujeitos}}:::logic
-        Split((Split Dados))
+    %% 1. Entrada
+    Input[("📁 Input<br/>Tangent Space HDF5")]:::storage
 
-        subgraph Train_Domain ["Domínio Fonte (Treino)"]
-            TrainX["Dados de Treino<br/>(N-1 Sujeitos)"]
-            TrainL["Calc. Landmarks<br/>(Centróides das Classes)"]:::math
-            Model["Treinar Classificador<br/>(SVM / LDA / Ridge)"]:::process
-        end
+    %% 2. Otimização (Externo)
+    Optuna{{"⚡ Optuna<br/>(Sugere Hiperparâmetros)"}}:::config
 
-        subgraph Test_Domain ["Domínio Alvo (Teste)"]
-            TestX["Dados de Teste<br/>(Sujeito Novo)"]
-            TestL["Calc. Landmarks<br/>(Centróides das Classes)"]:::math
-            RPA["Alinhamento de Procrustes<br/>(Translação + Rotação)"]:::math
-            TestAligned[Dados Alinhados]
-        end
+    %% 3. O Grande Bloco de Validação
+    subgraph CV ["🔄 Cross-Validation (LOSO)"]
+        direction LR
         
-        Metrics["Calcular Métricas<br/>(F1-Score / Acurácia)"]:::process
+        RPA["📐 Alinhamento Geométrico<br/>(Procrustes / PA)"]:::process
+        Train["🧠 Treinamento do Modelo<br/>(SVM / LDA / Ridge)"]:::process
+        
+        %% Conexão interna
+        RPA --> Train
     end
 
-    %% --- Saída ---
-    MLflow("MLflow Tracking<br/>Média & Std Dev"):::storage
+    %% 4. Saída
+    Output[("📊 MLflow<br/>(Tracking de Métricas)")]:::storage
 
-    %% --- Conexões ---
-    HDF5 --> Iterator
-    Iterator --> Split
-    
-    %% Fluxo de Treino
-    Split -- "Outros" --> TrainX
-    TrainX --> Model
-    TrainX --> TrainL
-
-    %% Fluxo de Teste & Alinhamento
-    Split -- "Sujeito i" --> TestX
-    TestX --> TestL
-    
-    %% A Mágica do Procrustes
-    TrainL & TestL --> RPA
-    TestX --> RPA
-    RPA --> TestAligned
-
-    %% Avaliação
-    Model -.-> |"predict()"| Metrics
-    TestAligned --> Metrics
-    
-    Metrics --> MLflow
+    %% Conexões Principais
+    Input --> CV
+    Optuna -.-> |"Configura"| CV
+    CV --> |"Média F1-Score"| Output
 ```
 
 ## 2. Project Structure
