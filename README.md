@@ -16,6 +16,68 @@ The framework features an automated "Research Engine" that orchestrates **Hyperp
     * **Artifacts:** UMAP/PCA visualizations of the Tangent Space before and after alignment.
     * **Parameters:** Full traceability of model configs.
 
+### Pipeline Diagram
+
+```mermaid
+graph LR
+    %% Estilos (Cores Profissionais)
+    classDef storage fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef logic fill:#fff3e0,stroke:#e65100,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef process fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
+    classDef math fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px;
+
+    %% --- Entrada ---
+    HDF5[(Arquivo HDF5<br/>Tangent Space)]:::storage
+    
+    %% --- Loop LOSO ---
+    subgraph LOSO_LOOP ["🔁 Validação Cruzada: Leave-One-Subject-Out (LOSO)"]
+        direction TB
+        Iterator{{Iterar Sujeitos}}:::logic
+        Split((Split Dados))
+
+        subgraph Train_Domain ["📚 Domínio Fonte (Treino)"]
+            TrainX[Dados de Treino<br/>(N-1 Sujeitos)]
+            TrainL[Calc. Landmarks<br/>(Centróides das Classes)]:::math
+            Model[Treinar Classificador<br/>(SVM / LDA / Ridge)]:::process
+        end
+
+        subgraph Test_Domain ["🎯 Domínio Alvo (Teste)"]
+            TestX[Dados de Teste<br/>(Sujeito Novo)]
+            TestL[Calc. Landmarks<br/>(Centróides das Classes)]:::math
+            RPA[Alinhamento de Procrustes<br/>(Translação + Rotação)]:::math
+            TestAligned[Dados Alinhados]
+        end
+        
+        Metrics[Calcular Métricas<br/>(F1-Score / Acurácia)]:::process
+    end
+
+    %% --- Saída ---
+    MLflow(📊 MLflow Tracking<br/>Média & Std Dev):::storage
+
+    %% --- Conexões ---
+    HDF5 --> Iterator
+    Iterator --> Split
+    
+    %% Fluxo de Treino
+    Split -- "Outros" --> TrainX
+    TrainX --> Model
+    TrainX --> TrainL
+
+    %% Fluxo de Teste & Alinhamento
+    Split -- "Sujeito i" --> TestX
+    TestX --> TestL
+    
+    %% A Mágica do Procrustes
+    TrainL & TestL --> RPA
+    TestX --> RPA
+    RPA --> TestAligned
+
+    %% Avaliação
+    Model -.-> |"predict()"| Metrics
+    TestAligned --> Metrics
+    
+    Metrics --> MLflow
+```
 
 ## 2. Project Structure
 
@@ -97,10 +159,10 @@ uv run mlflow ui --host 127.0.0.1 --port 8080
 Execute the experiment scripts. Each script points to a specific processed data path. Since both PyRiemann and RiemannDSP outputs share the same HDF5 schema, the training orchestrator processes them identically.
 
 ```
-# Run Benchmark on PyRiemann Data (points to ./data/ts/)
+# Run Benchmark on PyRiemann Data (points to ./data/processed/ts/)
 uv run experiments/pyriemann_benchmark.py
 
-# Run Benchmark on RiemannDSP Data (points to ./data/RiemannDSP/ts/)
+# Run Benchmark on RiemannDSP Data (points to ./data/riemanndsp/ts/)
 vu run experiments/riemanndsp_benchmark.py
 ```
 
@@ -110,7 +172,7 @@ vu run experiments/riemanndsp_benchmark.py
 
 2. Riemannian Projection: Covariance matrices are mapped to the Tangent Space via Log-Euclidean mapping. And saved as HDF5 files.
 
-3. Procrustes Alignment (RPA):
+3. Procrustes Alignment (PA):
     1. Calculates class centroids (Left/Right Hand) for the Test Subject and Training Set.
     2. Computes the optimal Rotation/Scale/Translation to align the Test Subject to the Training Domain (Centering -> Rotation -> Re-centering).
 
