@@ -4,24 +4,13 @@ A high-performance research framework for Motor Imagery (MI) classification, des
 
 The framework features an automated "Research Engine" that orchestrates **Hyperparameter Optimization (Optuna)** and **Model Observability (MLflow)**, ensuring rigorous validation via **Leave-One-Subject-Out (LOSO)** cross-validation.
 
-```
-graph LR
-    A[Raw EEG \n(MOABB)] -->|get_data.py| B(Raw HDF5)
-    B -->|PyRiemann| C[Tangent Space \n(Python)]
-    B -->|RiemannDSP| D[Tangent Space \n(C/C++)]
-    C --> E{HDF5 Interface}
-    D --> E
-    E --> F[Training Engine \n(LOSO + Optuna)]
-    F --> G[[MLflow Dashboard]]
-```
-
 ## 1. Key Points
 
 * **Data-Driven Benchmarking:** The framework operates on pre-processed Tangent Space data stored in standardized HDF5 files. This allows the Python training pipeline to be agnostic to the processing backend—seamlessly consuming data whether it was processed by PyRiemann (Python) or generated externally by RiemannDSP (C++).
 * **Language-Agnostic Integration:** This framework is designed to be extensible. If you wish to use a custom processing library developed in another programming language (e.g., C++, Rust, MATLAB), simply ensure your output `.h5` files adhere to the HDF5 Data Schema defined in `docs/data_interface.md`. By strictly following this data contract—specifically the dataset structure and data_type metadata—this pipeline can seamlessly ingest, validate, and benchmark your external data against standard Python implementations without any code modifications.
 * **Geometric Domain Adaptation:** Implements **Landmark-based Procrustes Alignment (PA)**. It aligns the centroids of class clusters (Transfer Learning) to map new subjects into the training manifold.
 * **Cross-Validation:** Utilizes **Leave-One-Subject-Out (LOSO)** cross-validation. For a dataset of $N$ subjects, models are trained $N$ times to strictly evaluate generalization to unseen users.
-* **Automated Orchestration:** An intelligent orchestrator manages **Optuna** studies to find the optimal hyperparameters for SVM, LDA, Ridge, and Logistic Regression models.
+* **Automated Orchestration:** An intelligent orchestrator manages **Optuna** studies to find the optimal hyperparameters for SVM, LDA and Logistic Regression models.
 * **Full Observability:** Deep integration with **MLflow** to track:
     * **Metrics:** Macro F1-Score, Accuracy (Mean & Std Dev across subjects).
     * **Artifacts:** UMAP/PCA visualizations of the Tangent Space before and after alignment.
@@ -126,4 +115,4 @@ vu run experiments/riemanndsp_benchmark.py
     1. Calculates class centroids (Left/Right Hand) for the Test Subject and Training Set.
     2. Computes the optimal Rotation/Scale/Translation to align the Test Subject to the Training Domain (Centering -> Rotation -> Re-centering).
 
-4. Classification: Training linear classifiers (SVM, Ridge, LDA) on the aligned tangent vectors. Using LOSO Cross Validation.
+4. Classification: Training linear classifiers (SVM, LDA, etc.) on the aligned tangent vectors. Using LOSO Cross Validation.
