@@ -27,32 +27,32 @@ graph LR
     classDef math fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px;
 
     %% --- Entrada ---
-    HDF5[(Arquivo HDF5<br/>Tangent Space)]:::storage
+    HDF5[("Arquivo HDF5<br/>Tangent Space")]:::storage
     
     %% --- Loop LOSO ---
-    subgraph LOSO_LOOP ["🔁 Validação Cruzada: Leave-One-Subject-Out (LOSO)"]
+    subgraph LOSO_LOOP ["Validação Cruzada: Leave-One-Subject-Out (LOSO)"]
         direction TB
         Iterator{{Iterar Sujeitos}}:::logic
         Split((Split Dados))
 
-        subgraph Train_Domain ["📚 Domínio Fonte (Treino)"]
-            TrainX[Dados de Treino<br/>(N-1 Sujeitos)]
-            TrainL[Calc. Landmarks<br/>(Centróides das Classes)]:::math
-            Model[Treinar Classificador<br/>(SVM / LDA / Ridge)]:::process
+        subgraph Train_Domain ["Domínio Fonte (Treino)"]
+            TrainX["Dados de Treino<br/>(N-1 Sujeitos)"]
+            TrainL["Calc. Landmarks<br/>(Centróides das Classes)"]:::math
+            Model["Treinar Classificador<br/>(SVM / LDA / Ridge)"]:::process
         end
 
-        subgraph Test_Domain ["🎯 Domínio Alvo (Teste)"]
-            TestX[Dados de Teste<br/>(Sujeito Novo)]
-            TestL[Calc. Landmarks<br/>(Centróides das Classes)]:::math
-            RPA[Alinhamento de Procrustes<br/>(Translação + Rotação)]:::math
+        subgraph Test_Domain ["Domínio Alvo (Teste)"]
+            TestX["Dados de Teste<br/>(Sujeito Novo)"]
+            TestL["Calc. Landmarks<br/>(Centróides das Classes)"]:::math
+            RPA["Alinhamento de Procrustes<br/>(Translação + Rotação)"]:::math
             TestAligned[Dados Alinhados]
         end
         
-        Metrics[Calcular Métricas<br/>(F1-Score / Acurácia)]:::process
+        Metrics["Calcular Métricas<br/>(F1-Score / Acurácia)"]:::process
     end
 
     %% --- Saída ---
-    MLflow(📊 MLflow Tracking<br/>Média & Std Dev):::storage
+    MLflow("MLflow Tracking<br/>Média & Std Dev"):::storage
 
     %% --- Conexões ---
     HDF5 --> Iterator
