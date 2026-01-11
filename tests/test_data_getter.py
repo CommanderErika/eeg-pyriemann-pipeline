@@ -5,7 +5,7 @@ from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from moabb_wrapper import DataGetter
+from data_extractor.data_extractor import DataExtractor
 from moabb.datasets.base import BaseDataset
 from moabb.paradigms.base import BaseParadigm
 
@@ -19,8 +19,8 @@ def test_successful_download():
         # Setup mock to return dummy data
         mock_wrapper.return_value.get_data.return_value = [1, 2, 3] # {"data": [1, 2, 3]}
         
-        # Initialize DataGetter
-        getter = DataGetter(
+        # Initialize DataExtractor
+        getter = DataExtractor(
             dataset_names=[MockDataset],
             paradigm=BaseParadigm,
         )
@@ -34,7 +34,7 @@ def test_failed_download():
         # Force an exception
         mock_wrapper.return_value.get_data.side_effect = Exception("Download failed")
         
-        getter = DataGetter(
+        getter = DataExtractor(
             dataset_names=[MockDataset],
             paradigm=BaseParadigm
         )

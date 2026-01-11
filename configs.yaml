@@ -1,0 +1,56 @@
+# General informations
+version: 1
+disable_existing_loggers: false
+
+formatters:
+  standard:
+    format: "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+
+handlers:
+  console:
+    formatter: "standard"
+    class: "logging.StreamHandler"
+    stream: "ext://sys.stdout"
+
+  extraction:
+    formatter: "standard"
+    class: "logging.FileHandler"
+    filename: "logs/extraction.log"
+
+  processing:
+    formatter: "standard"
+    class: "logging.FileHandler"
+    filename: "logs/processing.log"
+
+  #  Handler for Machine Learning Experiments
+  benchmarking:
+    formatter: "standard"
+    class: "logging.FileHandler"
+    filename: "logs/benchmarking.log"
+
+loggers:
+  src.data:
+    handlers: ["extraction"]
+    level: "DEBUG"
+    propagate: true
+  
+  src.processing: 
+    handlers: ['processing']
+    level: "DEBUG"
+    propagate: true
+
+  # Orchestrator/Tracking module
+  src.tracking:
+    handlers: ["benchmarking", "console"]
+    level: "DEBUG"
+    propagate: false
+
+  experiments:
+    handlers: ["console", "benchmarking"]
+    level: "INFO"
+    propagate: false
+
+  __main__:
+    handlers: ["console"]
+    level: "INFO"
+    propagate: true

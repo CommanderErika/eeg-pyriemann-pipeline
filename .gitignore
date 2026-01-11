@@ -1,7 +1,42 @@
-.venv
-.5524
-.pytest_cache
-/data/
-/src/__pycache__/
-/tests/__pycache__/
-cle
+# --- Python & Environment ---
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+.env
+.python-version
+
+# --- Data & Databases ---
+# Ignore all data files (datasets are usually too large for git)
+data/*
+*.h5
+*.gdf
+# Ignore SQLite databases (Optuna studies)
+*.db
+*.sqlite3
+results/
+
+# --- Machine Learning Artifacts (MLflow) ---
+mlruns/
+mlartifacts/
+# --- Logs ---
+logs/
+*.log
+
+# --- Jupyter Notebooks ---
+# Ignore checkpoint folders created by Jupyter
+.ipynb_checkpoints/
+notebooks/result_analysis.ipynb
+
+# --- IDE & OS Settings ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Dependency Management ---
+*.egg-info/
+dist/
+build/
