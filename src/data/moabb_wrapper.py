@@ -24,8 +24,8 @@ class MOABBwrapper:
     """
     dataset: BaseDataset
     paradigm: BaseParadigm
-    subjects: int           = field(default=1)
-    freqr: Optional[float]    = field(default=None)
+    subjects: int | None        = field(default=None)
+    freqr: Optional[float]      = field(default=None)
 
     def __post_init__(self):
         
@@ -39,8 +39,10 @@ class MOABBwrapper:
     def _validate(self) -> None:
 
         """Validate parameters and initialize dataset/paradigm instances"""
-        if self.subjects < 1:
-            raise ValueError("Number of subjects must be at least 1")
+        if not self.subjects is None:
+            if self.subjects < 1:
+                raise ValueError("Number of subjects must be at least 1")
+
         if self.freqr is not None and self.freqr <= 0:
             raise ValueError("Resampling frequency must be positive if provided")
         if self.freqr is None:
@@ -54,7 +56,11 @@ class MOABBwrapper:
         Get data from dataset.
         """
         # Load data for specified number of subjects
-        subject_ids = list(range(1, self.subjects + 1))
+        if not self.subjects is None:
+            subject_ids = list(range(1, self.subjects + 1))
+        else:
+            subject_ids = None
+
         x, y, meta = self._paradigm.get_data(dataset=self._dataset,
                                           subjects=subject_ids,
                                          )

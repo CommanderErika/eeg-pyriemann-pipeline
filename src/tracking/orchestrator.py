@@ -36,6 +36,7 @@ class ExperimentOrchestrator:
     process_lib: str = field(init=True)
     data_dir: str = field(init=True)
     dataset: str = field(init=True)
+    use_pa: bool = field(init=True)
     tracking_uri: str = field(default="http://127.0.0.1:8888")
 
     # Internal
@@ -84,20 +85,19 @@ class ExperimentOrchestrator:
             name: Optional alias. If None, uses the class name (e.g., 'SVMModel').
                   Use this to register the same model class multiple times.
         """
-        # 1. Determine the unique key for this model
+        # Determine the unique key for this model
         model_key = name if name else model_class.__name__
         
-        # 2. Safety check: Warn if we are overwriting
+        # Safety check: Warn if we are overwriting
         if model_key in self._models:
             print(f"WARNING: Overwriting existing registration for '{model_key}'")
 
-        # 3. Store using the key
+        # Store using the key
         self._models[model_key] = model_class
         self._params_list[model_key] = params
 
     def run_benchmark(self, n_trials: int = 20) -> Dict[str, Dict]:
         """
-        NEW: Systematic Benchmark Mode.
         Iterates through ALL registered models and runs a dedicated optimization
         experiment for each one sequentially.
         """
@@ -154,7 +154,7 @@ class ExperimentOrchestrator:
         # Create the URL
         storage_url = f"sqlite:///{db_path}"
 
-        print(f"DEBUG: Storing database at: {db_path}")
+        self.logger.info(f"INFO: Storing database at: {db_path}")
 
         try:
             
@@ -207,7 +207,6 @@ class ExperimentOrchestrator:
 
                 # ----- Leave-One-Subject-Out (LOSO) -----
                 logo = LeaveOneGroupOut()
-                # n_groups = logo.get_n_splits(groups=subjects)
 
                 # Dictionary to store list of scores for every metric
                 cv_results_train = defaultdict(list)
@@ -215,7 +214,7 @@ class ExperimentOrchestrator:
 
                 # Placeholders for visualization data (we will grab them from the last fold)
                 last_x_train = None
-                last_x_test_RPA = None
+                last_x_test = None
                 last_y_train = None
                 last_y_test = None
 
@@ -225,11 +224,9 @@ class ExperimentOrchestrator:
                 for train_idx, test_idx in logo.split(x_data, y_data, groups=subjects):
 
                     # Slice Data using indices
-                    # uv run ./experiments/pyriemann_benchmark.py
                     x_train, y_train = x_data[train_idx], y_data[train_idx]
                     x_test, y_test = x_data[test_idx], y_data[test_idx]
 
-                    # --- SAFETY CHECKS (Add this block) ---
                     # Check for NaNs
                     if np.isnan(x_train).any() or np.isinf(x_train).any():
                         self.logger.error(f"CRITICAL: NaNs found in Training Data (Fold {fold_idx})")
@@ -251,14 +248,15 @@ class ExperimentOrchestrator:
                         self.logger.error(f"X shape: {x_train.shape}, Y unique: {unique_classes}")
                         raise e
 
-                    # Procrustes Alignment
-                    x_test_RPA = self._procrustes_by_class(
-                        x_train, y_train, x_test, y_test, translate=False, scale=False
-                    )
+                    # Procrustes Alignment (PA)
+                    if self.use_pa:
+                        x_test = self._use_procrustes( 
+                             x_train, y_train, x_test, y_test, translate=False, scale=False
+                        )
 
                     # Evaluate
                     _, _, metrics_train = model.evaluate(x_train, y_train)
-                    _, _, metrics_test = model.evaluate(x_test_RPA, y_test)
+                    _, _, metrics_test = model.evaluate(x_test, y_test)
 
                     # Store metrics
                     for metric_name, score_value in metrics_train.items():
@@ -269,7 +267,7 @@ class ExperimentOrchestrator:
 
                     # Save data from this fold for logging/viz later
                     last_x_train = x_train
-                    last_x_test_RPA = x_test_RPA
+                    last_x_test = x_test
                     last_y_train = y_train
                     last_y_test = y_test
 
@@ -289,21 +287,22 @@ class ExperimentOrchestrator:
                     final_metrics_test[f"cv_std_{metric_name}"]  = np.std(scores)
 
                 # Dimensionality Reduction (Visualization only)
-                x_train_reduced, x_RPA_reduced = self.apply_pca_lda_umap(
-                    last_x_train, last_y_train, last_x_test_RPA, last_y_test, 
+                x_train_reduced, x_test_reduced = self.apply_pca_lda_umap(
+                    last_x_train, last_y_train, last_x_test, last_y_test, 
                     method='umap', n_components=3
                 )
 
                 # Logging
                 experiment_data = {
                     'params': params,
+                    'use_pa': self.use_pa,
                     'metrics_train': final_metrics_train,
                     'metrics_test': final_metrics_test,
                     'dataset_name': self.dataset,
                     'processing_lib': self.process_lib,
                     'model_type': model_name,
                     'x_train_dim': x_train_reduced,
-                    'x_test_dim': x_RPA_reduced
+                    'x_test_dim': x_test_reduced
                 }
 
                 self.tracker.log_experiment(
@@ -324,68 +323,33 @@ class ExperimentOrchestrator:
             mlflow.log_param("ERROR", str(e))
             raise optuna.TrialPruned()
 
-    def _procrustes_by_class(self, x_train, y_train, x_test, y_test, translate=False, scale=False):
+    def _use_procrustes(self, x_train, x_test, translate=False, scale=False):
         """
-        Applies Procrustes Alignment using Class Centroids (Landmarks).
-        
-        Process:
-        1. Compute Centroids (Mean of Left, Mean of Right) for Train and Test.
-        2. Center these Centroids to the origin.
-        3. Use 'generic' to find the rotation Matrix T.
-        4. Apply: (Test_Data - Test_Center) @ T + Train_Center
+        Applies Procrustes Alignment using centroids
         """
-        # --- 1. Calculate Centroids (Landmarks) ---
-        classes = np.unique(y_train)
-        
-        train_landmarks = []
-        test_landmarks = []
-        
-        for cls in classes:
-            # Calculate mean vector for each class (resulting in 1 point per class)
-            # Check if class exists in test set (safety for small datasets)
-            if np.sum(y_test == cls) > 0:
-                train_mean = np.mean(x_train[y_train == cls], axis=0)
-                test_mean = np.mean(x_test[y_test == cls], axis=0)
-                
-                train_landmarks.append(train_mean)
-                test_landmarks.append(test_mean)
-        
-        # Convert to numpy arrays (Shape: [N_classes, N_features])
-        L_train = np.array(train_landmarks)
-        L_test = np.array(test_landmarks)
-        
-        # --- 2. Manual Centering (Crucial Step) ---
-        # We calculate the "Global Center" of the landmarks
-        center_train = np.mean(L_train, axis=0)
-        center_test = np.mean(L_test, axis=0)
+        # Manual Centering
+        center_train = np.mean(x_train, axis=0)
+        center_test = np.mean(x_test, axis=0)
         
         # Move landmarks to origin
-        L_train_centered = L_train - center_train
-        L_test_centered = L_test - center_test
+        x_train_centered = x_train - center_train
+        x_test_centered = x_test - center_test
 
         try:
-            # --- 3. Compute Transformation Matrix T ---
+            # Compute Transformation Matrix T
             # We use translate=False because we already manually centered them.
             # We map Test -> Train
-            RPA_result = generic(L_test_centered, L_train_centered, translate=translate, scale=scale)
+            RPA_result = generic(x_test_centered, x_train_centered, translate=translate, scale=scale)
             
             # RPA_result.t is the optimal transformation matrix
             Transformation_Matrix = RPA_result.t
             
-            # --- 4. Apply to Full Test Dataset ---
-            # Formula: X_new = (X_old - Source_Center) * T + Target_Center
-            
-            # A. Shift to Origin
-            x_test_centered = x_test - center_test
-            
-            # B. Apply Rotation/Scaling
+            # Apply Rotation/Scaling
             x_test_rotated = np.dot(x_test_centered, Transformation_Matrix)
             
-            # C. Shift to Target (Train) Space
+            # Shift to Target (Train) Space
             if scale and hasattr(RPA_result, 'scale'):
-                 # If generic calculated a scale factor, we might need to handle it, 
-                 # but usually 't' absorbs the scaling in general linear maps.
-                 pass
+                pass
 
             x_test_aligned = x_test_rotated + center_train
 
@@ -506,14 +470,14 @@ class ExperimentOrchestrator:
         
         for name, config in param_space.items():
             
-            # 1. Handle Single Fixed Values (List or Tuple of length 1)
+            # Handle Single Fixed Values (List or Tuple of length 1)
             # e.g., [1000] or (1000,)
             if isinstance(config, (list, tuple)) and len(config) == 1:
                 # Treat as a categorical with one option (Fixed)
                 params[name] = trial.suggest_categorical(name, config)
                 continue
 
-            # 2. Handle Integer definitions
+            # Handle Integer definitions
             if isinstance(config, (list, tuple)) and all(isinstance(x, int) for x in config):
                 # Legacy Support: [min, max] list treated as range
                 if len(config) == 2:
@@ -525,7 +489,7 @@ class ExperimentOrchestrator:
                     # Treat as Categorical choices
                     params[name] = trial.suggest_categorical(name, config)
 
-            # 3. Handle Float Ranges (Must be Tuples)
+            # Handle Float Ranges (Must be Tuples)
             # e.g., (0.1, 1.0)
             elif isinstance(config, tuple):
                 if len(config) == 2:
@@ -533,7 +497,7 @@ class ExperimentOrchestrator:
                 elif len(config) == 3:
                     params[name] = trial.suggest_float(name, config[0], config[1], step=config[2])
             
-            # 4. Handle Standard Categorical (Strings, mixed types)
+            # Handle Standard Categorical (Strings, mixed types)
             # e.g., ['linear', 'rbf']
             elif isinstance(config, list):
                 params[name] = trial.suggest_categorical(name, config)

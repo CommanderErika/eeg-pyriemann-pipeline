@@ -19,12 +19,13 @@ with open('configs.yaml', 'r') as f:
 if __name__ == "__main__":
 
     # Configuration variables
-    # That works: PhysionetMI, Cho2017, Liu2024, Zhou2016, Lee2019_MI
+    # That works: PhysionetMI, Cho2017, Liu2024, Zhou2016, Lee2019_MI, Zhou2016
     DATASETS            = ["Cho2017", "Zhou2016", "BNCI2014_004", "BNCI2014_001",
                            "BNCI2014_002", "AlexMI", "Liu2024", "Lee2019_MI", 
                            "PhysionetMI"]
     PARADIGM            = "LeftRightImagery"
-    FREQR               = 500
+    FREQR               = 500               # Must be equal for all
+    N_SUBJ              = None              # If set None, will get all data
     FORCE_SAVE          = False
     DATA_RAW            = "./data/raw/"
 
@@ -36,10 +37,10 @@ if __name__ == "__main__":
     # TODO: Put the handler inside DataExtractor
     datasets = handle_datasets(DATASETS)
     paradigm = get_paradigm(PARADIGM)
-    # TODO: concurrent Download
+    # TODO: Concurrent Download
     downloader = DataExtractor(dataset_names=datasets, 
                                paradigm=paradigm, 
-                               n_subjects=8,
+                               n_subjects=N_SUBJ,
                                freqr=FREQR, 
                                resample=True)
     data = downloader.data

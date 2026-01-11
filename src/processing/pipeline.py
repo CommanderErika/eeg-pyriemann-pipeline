@@ -86,7 +86,7 @@ class ProcessingPipeline:
             Exception: For any other processing errors
         """
         try:
-            # 1. Load raw data from HDF5 file
+            # Load raw data from HDF5 file
             raw_file_path = Path(self.raw_dir) / file
             if not Path(self.raw_dir).exists():
                 raise FileNotFoundError(f"Raw data file not found: {Path(self.raw_dir)}")
@@ -97,21 +97,21 @@ class ProcessingPipeline:
             if data is None:
                 raise ValueError(f"Failed to load data or empty data from: {raw_file_path}")
 
-            # 2. Compute covariance matrices
+            # Compute covariance matrices
             covs = self._covariances(data=data)
             
-            # 3. Save covariance matrices
+            # Save covariance matrices
             cov_file_path = Path(self.cov_dir) / f"{file}_covs"
             self.hdf_manager.save(data=covs, filename=str(cov_file_path), data_type='covariances')
 
-            # 4. Project to tangent space
+            # Project to tangent space
             ts, cov_ref = self._tangent_space(data=covs)
             
-            # 5. Save covariance reference matrix
+            # Save covariance reference matrix
             cov_ref_path = Path(self.cov_dir) / f"../cov_ref/{file}_cov_ref.bin"
             cov_ref.tofile(cov_ref_path)
             
-            # 6. Save tangent space features
+            # Save tangent space features
             ts_file_path = Path(self.ts_dir) / f"{file}_ts"
             self.hdf_manager.save(data=ts, filename=str(ts_file_path), data_type='tangent')
             

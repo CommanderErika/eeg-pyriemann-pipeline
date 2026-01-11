@@ -14,9 +14,9 @@ from .moabb_wrapper import MOABBwrapper
 class DataExtractor:
     dataset_names: list[BaseDataset]
     paradigm: Any
-    n_subjects: int                     = field(default=1)
+    n_subjects: int | None              = field(default=None)
     resample: bool                      = field(default=False)
-    freqr: Optional[float]                = field(default=None)
+    freqr: Optional[float]              = field(default=None)
     _data: dict[str, Any]               = field(init=False, default_factory=dict)
 
     def __post_init__(self,):
@@ -46,11 +46,12 @@ class DataExtractor:
         if not self.resample and self.freqr is not None:
             warning_msg = "freqr is provided but resample=False - this parameter will be ignored"
             self.logger.warning(warning_msg)
-            
-        if self.n_subjects < 1:
-            error_msg = f"n_subjects must be at least 1, got {self.n_subjects}"
-            self.logger.error(error_msg)
-            raise ValueError(error_msg)
+        
+        if not self.n_subjects is None:
+            if self.n_subjects < 1:
+                error_msg = f"n_subjects must be at least 1, got {self.n_subjects}"
+                self.logger.error(error_msg)
+                raise ValueError(error_msg)
         
         self.logger.info("Configuration validation passed")
         
@@ -59,7 +60,7 @@ class DataExtractor:
         return MOABBwrapper(
             dataset=name,
             paradigm=self.paradigm,
-            subjects=int(self.n_subjects),
+            subjects=self.n_subjects,
             freqr=self.freqr
         ).get_data()
 

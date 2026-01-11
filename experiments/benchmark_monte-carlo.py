@@ -8,9 +8,14 @@ from src.models import SVMModel, LogisticModel, LDAModel
 # First setup the server
 # mlflow server --host 127.0.0.1 --port 8080
 
+# TODO:
+# create hypothesis test
+# roc-auc
+# Unity tests
+
 if __name__ == "__main__":
 
-    LIB: str        = "RiemannDSP"
+    LIB: str        = "PyRiemann"
     DATA_DIR: str   = "./data/processed/ts/" if LIB == "PyRiemann" else "./data/riemanndsp/ts/"
     DATASETS: str   = [ "Cho2017", "BNCI2014_004", "BNCI2014_001",
                         "Liu2024", "Lee2019_MI", "PhysionetMI"]
@@ -38,9 +43,17 @@ if __name__ == "__main__":
 
         # SVM Model
         orchestrator.registry_model(model_class     = SVMModel,
-                                    name            = "SVM",
-                                    params          = { 'kernel' : ['linear', 'rbf'],
-                                                        'C'      : (0.5, 50.0),   
+                                    name            = "SVM RBF",
+                                    params          = { 'kernel' : ['rbf'],
+                                                        #'C'      : (0.5, 50.0),   
+                                                        # Increase cache to use more RAM (default is 200MB)
+                                                        'cache_size': [2000]
+                                                        })
+        
+        orchestrator.registry_model(model_class     = SVMModel,
+                                    name            = "SVM Linear",
+                                    params          = { 'kernel' : ['linear'],
+                                                        #'C'      : (0.5, 50.0),   
                                                         # Increase cache to use more RAM (default is 200MB)
                                                         'cache_size': [2000]
                                                         })
@@ -50,9 +63,8 @@ if __name__ == "__main__":
                                     name            = "Logistic_Regression",
                                     params          = { 
                                                         'penalty'     : ['l2'], # Keep simple for stability
-                                                        'C'           : (0.1, 10.0),
-                                                        'solver'      : ['lbfgs'],
-                                                        'max_iter'    : [2000], # Fixed value is fine
+                                                        # 'C'           : (0.1, 10.0),
+                                                        'solver'      : ['lbfgs']
                                                     }                
                                     )
         
@@ -60,8 +72,8 @@ if __name__ == "__main__":
         orchestrator.registry_model(model_class = LDAModel,
                                     name        = "LDA",
                                     params      = { 
-                                        'solver'    : ['lsqr', 'eigen'],
-                                        'shrinkage' : ['auto', 0.1, 0.5, 0.9] 
+                                       # 'solver'    : ['lsqr', 'eigen'],
+                                       # 'shrinkage' : ['auto', 0.1, 0.5, 0.9] 
                                     })
 
         # Running Experiments

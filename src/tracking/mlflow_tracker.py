@@ -39,7 +39,8 @@ class MLflowTracker(BaseTracker):
             'dataset':          experiment_data['dataset_name'],
             'processing_lib' :  experiment_data['processing_lib'],
             'model_type':       experiment_data['model_type'],
-            'run_type':         'hyperparameter_tuning'
+            'PA'      :         experiment_data['use_pa'],
+            'run_type':         'hyperparameter_tuning',
         })
         # Log artefacts
         images = {'x_train_dim' : experiment_data['x_train_dim'],
@@ -173,12 +174,12 @@ class MLflowTracker(BaseTracker):
         """Methods to log artefacts with 4 separate 3D plots"""
         
         if images['x_train_dim'].shape[1] < 3:
-            print("Aviso: Dados com menos de 3 dimensões.")
+            print("Warning: Data with less than 3 dims.")
             return
         
         figure = plt.figure(figsize=(20, 16))
         
-        # Plot 1: Treino + Left (cima esquerda)
+        # Plot 1: train + Left
         ax1 = figure.add_subplot(2, 2, 1, projection='3d')
         mask_train_left = y_train == 'left_hand'
         
@@ -192,7 +193,7 @@ class MLflowTracker(BaseTracker):
         
         ax1.set_title('Train - Left Hand', fontsize=14, fontweight='bold')
         
-        # Plot 2: Treino + Right (cima direita)
+        # Plot 2: train + Right
         ax2 = figure.add_subplot(2, 2, 2, projection='3d')
         mask_train_right = y_train == 'right_hand'
 
@@ -206,7 +207,7 @@ class MLflowTracker(BaseTracker):
         
         ax2.set_title('Train - Right Hand', fontsize=14, fontweight='bold')
         
-        # Plot 3: Test + Left (baixo esquerda)
+        # Plot 3: Test + Left
         ax3 = figure.add_subplot(2, 2, 3, projection='3d')
         mask_test_left = y_test == 'left_hand'
         
@@ -220,7 +221,7 @@ class MLflowTracker(BaseTracker):
         
         ax3.set_title('Test - Left Hand', fontsize=14, fontweight='bold')
         
-        # Plot 4: Test + Right (baixo direita)
+        # Plot 4: Test + Right 
         ax4 = figure.add_subplot(2, 2, 4, projection='3d')
         mask_test_right = y_test == 'right_hand'
 
@@ -242,7 +243,7 @@ class MLflowTracker(BaseTracker):
         """Methods to log artefacts with simple 3D plots"""
         
         if images['x_train_dim'].shape[1] < 3:
-            print("Aviso: Dados com menos de 3 dimensões.")
+            print("Warning: data with less than 3 dims.")
             return
         
         figure = plt.figure(figsize=(18, 6))
@@ -347,20 +348,20 @@ class MLflowTracker(BaseTracker):
                                 x_test, y_test, z_test,
                                 train_color, test_color):
         """
-        Projeções separadas por conjunto de dados - MELHOR VISUALIZAÇÃO
+        Projections separated by set.
         """
-        # Scatters principais
+        # Scatters
         ax.scatter(x_train, y_train, z_train, alpha=0.8, s=50, 
                 color=train_color, marker='o', label='Train')
         ax.scatter(x_test, y_test, z_test, alpha=0.8, s=50, 
                 color=test_color, marker='s', label='Test')
         
-        # Limites combinados
+        # Limits
         z_min = np.min(np.concatenate([z_train, z_test]))
         y_min = np.min(np.concatenate([y_train, y_test]))
         x_min = np.min(np.concatenate([x_train, x_test]))
         
-        # Projeções do TREINO (linhas sólidas)
+        # Train projections
         if len(x_train) > 0:
             ax.plot(x_train, y_train, [z_min]*len(x_train), ',', 
                 color=train_color, alpha=0.4, zdir='z', linewidth=1)
@@ -369,7 +370,7 @@ class MLflowTracker(BaseTracker):
             ax.plot([x_min]*len(x_train), y_train, z_train, ',', 
                 color=train_color, alpha=0.4, zdir='x', linewidth=1)
         
-        # Projeções do TESTE (linhas tracejadas)
+        # Test projections
         if len(x_test) > 0:
             ax.plot(x_test, y_test, [z_min]*len(x_test), ',', 
                 color=test_color, alpha=0.4, zdir='z', linewidth=1)
@@ -382,32 +383,32 @@ class MLflowTracker(BaseTracker):
     
     def plot_3d_with_heatmap_projections(self, ax, x, y, z, color, label):
         """
-        Scatter 3D com heatmaps 2D nas projeções dos planos - Versão Simplificada
+        3D Scatter with 2D heatmaps in the plane projections
         """
-        # Scatter plot principal
+        # Scatter plot
         scatter = ax.scatter(x, y, z, alpha=0.7, s=30, 
                             color=color, marker='o', label=label)
         
-        # Limites dos dados
+        # Data Limits
         if len(x) > 0:
             x_min, x_max = np.min(x), np.max(x)
             y_min, y_max = np.min(y), np.max(y)
             z_min, z_max = np.min(z), np.max(z)
             
-            # Adicionar uma pequena margem aos limites
+            # Add margin
             x_margin = (x_max - x_min) * 0.1
             y_margin = (y_max - y_min) * 0.1
             z_margin = (z_max - z_min) * 0.1
-            
-            # Definir os limites manualmente
+
+            # Define limits manually
             ax.set_xlim(x_min - x_margin, x_max + x_margin)
             ax.set_ylim(y_min - y_margin, y_max + y_margin)
             ax.set_zlim(z_min - z_margin, z_max + z_margin)
             
-            # Criar grids para os heatmaps
+            # Create a grid fot the heatmaps
             grid_size = 30
             
-            # 1. Plano XY (INFERIOR) - z = z_min
+            # Plane XY - z = z_min
             if len(x) > 0 and len(y) > 0:
                 heatmap_xy, x_edges, y_edges = np.histogram2d(x, y, 
                                                             bins=grid_size, 
@@ -419,7 +420,7 @@ class MLflowTracker(BaseTracker):
                 ax.contourf(X_xy, Y_xy, heatmap_xy.T, zdir='z', offset=z_min, 
                         alpha=0.4, cmap=self._get_cmap_for_color(color), levels=5)
             
-            # 2. Plano XZ (LATERAL ESQUERDO) - y = y_min
+            # Plane XZ - y = y_min
             if len(x) > 0 and len(z) > 0:
                 heatmap_xz, x_edges, z_edges = np.histogram2d(x, z, 
                                                             bins=grid_size, 
@@ -431,7 +432,7 @@ class MLflowTracker(BaseTracker):
                 ax.contourf(X_xz, heatmap_xz.T, Z_xz, zdir='y', offset=y_max, 
                         alpha=0.3, cmap=self._get_cmap_for_color(color), levels=5)
             
-            # 3. Plano YZ (FUNDO) - x = x_max
+            # Plane YZ - x = x_max
             if len(y) > 0 and len(z) > 0:
                 heatmap_yz, y_edges, z_edges = np.histogram2d(y, z, 
                                                             bins=grid_size, 
@@ -447,101 +448,101 @@ class MLflowTracker(BaseTracker):
 
     def plot_3d_with_kde_projections(self, ax, x, y, z, color, label):
         """
-        Scatter 3D com projeções KDE suavizadas nos planos
+        3D Scatter with KDE projections in the planes.
         """
         from scipy.stats import gaussian_kde
         
-        # Scatter plot principal
+        # Scatter plot
         scatter = ax.scatter(x, y, z, alpha=0.7, s=30, 
                             color=color, marker='o', label=label)
         
-        # Limites dos dados
+        # Data limits
         if len(x) > 0:
             x_min, x_max = np.min(x), np.max(x)
             y_min, y_max = np.min(y), np.max(y)
             z_min, z_max = np.min(z), np.max(z)
             
-            # Adicionar uma pequena margem aos limites
+            # Add margin
             x_margin = (x_max - x_min) * 0.1
             y_margin = (y_max - y_min) * 0.1
             z_margin = (z_max - z_min) * 0.1
             
-            # Definir os limites manualmente
+            # Define the limits manually
             ax.set_xlim(x_min - x_margin, x_max + x_margin)
             ax.set_ylim(y_min - y_margin, y_max + y_margin)
             ax.set_zlim(z_min - z_margin, z_max + z_margin)
             
-            # Criar grids para KDE (mais pontos para melhor suavização)
+            # Create KDE grids
             grid_size = 30
             x_grid = np.linspace(x_min, x_max, grid_size)
             y_grid = np.linspace(y_min, y_max, grid_size)
             z_grid = np.linspace(z_min, z_max, grid_size)
             
-            # 1. Plano XY (INFERIOR) - z = z_min
+            # Plano XY - z = z_min
             if len(x) > 1 and len(y) > 1:  # KDE precisa de pelo menos 2 pontos
                 try:
-                    # Calcular KDE para plano XY
+                    # Calculates KDE
                     xy_data = np.vstack([x, y])
                     kde_xy = gaussian_kde(xy_data)
                     
-                    # Criar meshgrid para o plano XY
+                    # Create meshgrid
                     X_xy, Y_xy = np.meshgrid(x_grid, y_grid)
                     positions_xy = np.vstack([X_xy.ravel(), Y_xy.ravel()])
                     
-                    # Calcular densidade KDE
+                    # Calculate KDE density
                     Z_kde_xy = kde_xy(positions_xy).reshape(X_xy.shape)
                     
-                    # Normalizar para melhor visualização
+                    # Normalization
                     Z_kde_xy = Z_kde_xy / np.max(Z_kde_xy)
                     
-                    # Plotar contornos suavizados
+                    # Plot contours
                     ax.contourf(X_xy, Y_xy, Z_kde_xy, zdir='z', offset=z_min, 
                             alpha=0.4, cmap=self._get_cmap_for_color(color), levels=8)
                 except (ValueError, np.linalg.LinAlgError):
-                    # Fallback para histograma se KDE falhar
+                    # Fallback
                     self._plot_histogram_fallback(ax, x, y, z_min, 'z', color, 'xy')
             
-            # 2. Plano XZ (LATERAL ESQUERDO) - y = y_min
+            # Plano XZ - y = y_min
             if len(x) > 1 and len(z) > 1:
                 try:
-                    # Calcular KDE para plano XZ
+                    # Calculates KDE
                     xz_data = np.vstack([x, z])
                     kde_xz = gaussian_kde(xz_data)
                     
-                    # Criar meshgrid para o plano XZ
+                    # Create meshgrid
                     X_xz, Z_xz = np.meshgrid(x_grid, z_grid)
                     positions_xz = np.vstack([X_xz.ravel(), Z_xz.ravel()])
                     
-                    # Calcular densidade KDE
+                    # Calculate KDE density
                     Z_kde_xz = kde_xz(positions_xz).reshape(X_xz.shape)
                     
-                    # Normalizar
+                    # Normalization
                     Z_kde_xz = Z_kde_xz / np.max(Z_kde_xz)
                     
-                    # Plotar contornos suavizados
+                    # Plot contours
                     ax.contourf(X_xz, Z_kde_xz, Z_xz, zdir='y', offset=y_max, 
                             alpha=0.3, cmap=self._get_cmap_for_color(color), levels=8)
                 except (ValueError, np.linalg.LinAlgError):
                     self._plot_histogram_fallback(ax, x, z, y_min, 'y', color, 'xz')
             
-            # 3. Plano YZ (FUNDO) - x = x_max
+            # Plano YZ - x = x_max
             if len(y) > 1 and len(z) > 1:
                 try:
-                    # Calcular KDE para plano YZ
+                    # Calculates KDE
                     yz_data = np.vstack([y, z])
                     kde_yz = gaussian_kde(yz_data)
                     
-                    # Criar meshgrid para o plano YZ
+                    # Create meshgrid
                     Y_yz, Z_yz = np.meshgrid(y_grid, z_grid)
                     positions_yz = np.vstack([Y_yz.ravel(), Z_yz.ravel()])
                     
-                    # Calcular densidade KDE
+                    # Calculate KDE density
                     Z_kde_yz = kde_yz(positions_yz).reshape(Y_yz.shape)
                     
-                    # Normalizar
+                    # Normalization
                     Z_kde_yz = Z_kde_yz / np.max(Z_kde_yz)
                     
-                    # Plotar contornos suavizados
+                    # Plot contours
                     ax.contourf(Z_kde_yz, Y_yz, Z_yz, zdir='x', offset=x_min, 
                             alpha=0.3, cmap=self._get_cmap_for_color(color), levels=8)
                 except (ValueError, np.linalg.LinAlgError):
@@ -551,7 +552,7 @@ class MLflowTracker(BaseTracker):
 
     def _plot_histogram_fallback(self, ax, data1, data2, offset, zdir, color, plane):
         """
-        Fallback para histograma quando KDE falha
+        Fallbacj if the KDE fails
         """
         grid_size = 15
         heatmap, edges1, edges2 = np.histogram2d(data1, data2, bins=grid_size)
@@ -573,7 +574,7 @@ class MLflowTracker(BaseTracker):
 
     def _get_cmap_for_color(self, color):
         """
-        Retorna um colormap apropriado baseado na cor
+        Return the apropriated colormap based on the color
         """
         color_map = {
             'blue': 'Blues',

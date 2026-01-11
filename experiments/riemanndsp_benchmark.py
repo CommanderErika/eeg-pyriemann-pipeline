@@ -3,7 +3,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.tracking import ExperimentOrchestrator, MLflowTracker
-from src.models import SVMModel, LogisticModel, LDAModel, RidgeModel
+from src.models import SVMModel, LogisticModel, LDAModel
 
 # First setup the server
 # mlflow server --host 127.0.0.1 --port 8080

@@ -16,6 +16,7 @@ data/*
 # Ignore SQLite databases (Optuna studies)
 *.db
 *.sqlite3
+results/
 
 # --- Machine Learning Artifacts (MLflow) ---
 mlruns/
@@ -27,6 +28,7 @@ logs/
 # --- Jupyter Notebooks ---
 # Ignore checkpoint folders created by Jupyter
 .ipynb_checkpoints/
+notebooks/result_analysis.ipynb
 
 # --- IDE & OS Settings ---
 .vscode/
